@@ -1,0 +1,71 @@
+---
+# ── EasyTravel role — Dynatrace demo app deployment ──────────────────────────
+# Deploys EasyTravel via Docker Compose. Container labels map the generic
+# travel-booking services to DT's wealth-platform narrative so dashboards
+# and distributed traces read contextually during the demo.
+
+- name: Create EasyTravel install directory
+  ansible.builtin.file:
+    path: "{{ easytravel_install_dir }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+
+- name: Template docker-compose.yml into place
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ easytravel_compose_file }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+  notify: Restart EasyTravel
+
+- name: Install systemd service for EasyTravel (survives reboots)
+  ansible.builtin.copy:
+    src: easytravel.service
+    dest: /etc/systemd/system/easytravel.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart EasyTravel
+
+- name: Pull EasyTravel Docker images (can take a few minutes on first run)
+  # docker_compose_v2_pull doesn't exist as a standalone module — shell is
+  # the correct approach; stdout_callback yaml prints a clean summary.
+  ansible.builtin.shell: docker compose pull
+  args:
+    chdir: "{{ easytravel_install_dir }}"
+  changed_when: true
+  register: pull_result
+
+- name: Start EasyTravel via systemd
+  ansible.builtin.systemd:
+    name: easytravel
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Wait for EasyTravel nginx classic portal (up to 3 minutes for JVM warmup)
+  ansible.builtin.wait_for:
+    host: localhost
+    port: 80
+    delay: 15
+    timeout: 180
+    msg: "EasyTravel nginx did not come up within 3 minutes"
+
+- name: Wait for EasyTravel backend REST API
+  ansible.builtin.wait_for:
+    host: localhost
+    port: 8091
+    delay: 5
+    timeout: 120
+    msg: "EasyTravel backend REST API did not come up"
+
+- name: Print EasyTravel access URLs
+  ansible.builtin.debug:
+    msg:
+      - "Classic portal (nginx):       http://{{ ansible_host }}/"
+      - "Angular portal (nginx):       http://{{ ansible_host }}:8080/"
+      - "Problem patterns admin UI:    http://{{ ansible_host }}:9079/"
+      - "Backend REST API:             http://{{ ansible_host }}:8091/"

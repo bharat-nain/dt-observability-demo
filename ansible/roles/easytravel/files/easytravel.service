@@ -1,0 +1,26 @@
+[Unit]
+Description=DT EasyTravel Demo Application (Docker Compose)
+Documentation=https://github.com/Dynatrace/easyTravel-Docker
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/easytravel
+
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans
+
+# Give JVM containers up to 3 minutes to come up cleanly
+TimeoutStartSec=180
+TimeoutStopSec=60
+
+# Restart the service if docker compose returns non-zero
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

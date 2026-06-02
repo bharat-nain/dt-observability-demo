@@ -1,0 +1,53 @@
+---
+# ── Master Provisioning Playbook ─────────────────────────────────────────────
+# Run order: common → docker → dynatrace_agent → easytravel
+# Each role is idempotent — safe to re-run without side effects.
+#
+# Usage:
+#   ansible-playbook playbooks/site.yml
+#   ansible-playbook playbooks/site.yml --tags dynatrace_agent   # re-provision agent only
+#   ansible-playbook playbooks/site.yml --tags easytravel        # redeploy app only
+
+- name: Provision DT Observability Demo Host
+  hosts: all
+  become: true
+  vars_files:
+    - "{{ playbook_dir }}/../vault/secrets.yml"
+
+  pre_tasks:
+    - name: Print target host info
+      ansible.builtin.debug:
+        msg:
+          - "Target host: {{ inventory_hostname }} ({{ ansible_host }})"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "DT Environment: {{ dt_environment_url }}"
+
+  roles:
+    - role: common
+      tags: [common, always]
+
+    - role: docker
+      tags: [docker]
+
+    - role: dynatrace_agent
+      tags: [dynatrace_agent, dynatrace]
+
+    - role: easytravel
+      tags: [easytravel, app]
+
+  post_tasks:
+    - name: Demo environment summary
+      ansible.builtin.debug:
+        msg:
+          - "============================================================"
+          - " DT Observability Demo — READY"
+          - "============================================================"
+          - " EasyTravel Portal:    http://{{ ansible_host }}/"
+          - " EasyTravel B2B:       http://{{ ansible_host }}:8093/"
+          - " Admin (problems):     http://{{ ansible_host }}:8079/"
+          - " Backend REST API:     http://{{ ansible_host }}:8091/"
+          - " Dynatrace Tenant:     {{ dt_environment_url }}"
+          - "============================================================"
+          - " Next: run 'make dashboards' to push DT dashboard configs"
+          - " Then: run 'make baseline' to start generating telemetry"
+          - "============================================================"

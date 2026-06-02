@@ -1,0 +1,33 @@
+---
+# ── Teardown Playbook ─────────────────────────────────────────────────────────
+# Stops containers and cleans up the application layer on the host.
+# Run this before `terraform destroy` to ensure clean shutdown.
+
+- name: Teardown DT Demo Application
+  hosts: all
+  become: true
+  vars_files:
+    - "{{ playbook_dir }}/../vault/secrets.yml"
+
+  tasks:
+    - name: Stop EasyTravel systemd service
+      ansible.builtin.systemd:
+        name: easytravel
+        state: stopped
+      ignore_errors: true
+
+    - name: Bring down Docker Compose stack
+      community.docker.docker_compose_v2:
+        project_src: /opt/easytravel
+        state: absent
+        remove_volumes: false
+      ignore_errors: true
+
+    - name: Prune unused Docker images (free disk space)
+      ansible.builtin.command: docker image prune -af
+      changed_when: true
+      ignore_errors: true
+
+    - name: Teardown complete
+      ansible.builtin.debug:
+        msg: "Application stopped. Run 'make down' to destroy the AWS infrastructure."

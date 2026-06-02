@@ -1,0 +1,44 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+terraform.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# SSH keys
+.ssh/
+*.pem
+*.key
+
+# Ansible secrets
+ansible/vault/secrets.yml
+.vault_pass
+
+# Environment files
+.env
+*.env
+
+# Vault password
+.vault_pass
+
+# k6 results
+k6/results/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

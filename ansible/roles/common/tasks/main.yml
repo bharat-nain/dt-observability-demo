@@ -1,0 +1,76 @@
+---
+# ── Common role — OS baseline ─────────────────────────────────────────────────
+# Runs first on every host. Idempotent: safe to re-run at any time.
+
+- name: Wait for cloud-init to finish
+  ansible.builtin.raw: cloud-init status --wait
+  changed_when: false
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install baseline utilities
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - git
+      - jq
+      - unzip
+      - htop
+      - net-tools
+      - dstat
+      - python3
+      - python3-pip
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - apt-transport-https
+    state: present
+
+- name: Set system hostname
+  ansible.builtin.hostname:
+    name: dt-demo
+    use: systemd
+
+- name: Apply kernel / network sysctl tuning
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-dt-demo.conf
+  loop: "{{ sysctl_settings | dict2items }}"
+
+- name: Check swap file exists
+  ansible.builtin.stat:
+    path: /swapfile
+  register: swap_file_stat
+
+- name: Create 2 GB swap file (if not present — cloud-init may have done this)
+  when: not swap_file_stat.stat.exists
+  block:
+    - name: Allocate swap file
+      ansible.builtin.command: fallocate -l 2G /swapfile
+      changed_when: true
+
+    - name: Set swap file permissions
+      ansible.builtin.file:
+        path: /swapfile
+        mode: "0600"
+
+    - name: Format as swap
+      ansible.builtin.command: mkswap /swapfile
+      changed_when: true
+
+    - name: Enable swap
+      ansible.builtin.command: swapon /swapfile
+      changed_when: true
+
+    - name: Persist swap in fstab
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: "/swapfile none swap sw 0 0"
+        state: present

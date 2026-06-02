@@ -1,0 +1,27 @@
+#cloud-config
+# Minimal bootstrap — Ansible handles everything beyond this.
+# Goal: ensure Python3 is present and swap is configured before Ansible runs.
+
+hostname: ${hostname}
+fqdn: ${hostname}.local
+manage_etc_hosts: true
+
+# 2 GB swap — JVM processes (EasyTravel backend) benefit from swap headroom
+# even on t3.large with 8 GB RAM
+swap:
+  filename: /swapfile
+  size: 2147483648   # 2 GB in bytes
+  maxsize: 2147483648
+
+# Only bootstrap essentials — Ansible manages the rest
+packages:
+  - python3
+  - python3-pip
+
+package_update: true
+package_upgrade: false
+
+# Signal completion so Ansible waits for cloud-init to finish
+final_message: |
+  Cloud-init complete on ${hostname}.
+  Python3 is available. Ansible provisioning can begin.

@@ -1,0 +1,14 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored — never commit it.
+
+aws_region   = "ap-southeast-2"
+aws_profile  = "dt"
+project_name = "dt-demo"
+instance_type = "t3.large"
+
+# Your public IPs with /32 CIDR — run: curl checkip.amazonaws.com
+# List as many as you need (home, work, VPN, etc.)
+allowed_cidr = [
+  "1.2.3.4/32",   # home
+  "5.6.7.8/32",   # work
+]

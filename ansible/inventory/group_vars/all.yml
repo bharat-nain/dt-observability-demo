@@ -1,0 +1,30 @@
+---
+# ── Non-sensitive configuration ──────────────────────────────────────────────
+# Secrets (dt_api_token) are in vault/secrets.yml (ansible-vault encrypted)
+# This file lives under inventory/group_vars/ so Ansible auto-discovers it
+# regardless of whether the static or dynamic inventory is used.
+
+# Dynatrace
+dt_environment_id: "zwc56698"
+dt_environment_url: "https://zwc56698.live.dynatrace.com"
+dt_host_group: "dt-demo"
+dt_host_tags:
+  - "environment:demo"
+  - "app:wealth-platform"
+  - "team:observability"
+  - "project:dt-observability-demo"
+
+# EasyTravel
+easytravel_install_dir: "/opt/easytravel"
+easytravel_compose_file: "{{ easytravel_install_dir }}/docker-compose.yml"
+
+# Docker
+docker_users:
+  - ubuntu
+
+# OS tuning
+sysctl_settings:
+  net.core.somaxconn: 65535
+  net.ipv4.tcp_max_syn_backlog: 65535
+  vm.swappiness: 10
+  vm.overcommit_memory: 1   # Required for Redis-like workloads

@@ -1,0 +1,35 @@
+[
+  {
+    "name": "DT Platform — API Availability",
+    "description": "Percentage of successful (non-error) requests to the DT Platform API. Maps to the easytravel-backend service. Target: 99.5% over 7 days.",
+    "metricExpression": "(100)*(builtin:service.errors.total.successCount:splitBy())/(builtin:service.requestCount.server:splitBy())",
+    "evaluationType": "AGGREGATE",
+    "filter": "type(SERVICE),tag(\"app:wealth-platform\")",
+    "target": 99.5,
+    "warning": 99.9,
+    "timeframe": "-7d",
+    "enabled": true
+  },
+  {
+    "name": "DT Platform — Latency SLO (p95 < 2s)",
+    "description": "95th percentile response time below 2000ms. Ensures adviser portal interactions feel responsive. Evaluated over 24 hours.",
+    "metricExpression": "(100)*(builtin:service.response.time:percentile(95):value:filter(lt(2000000)):splitBy())/(builtin:service.response.time:percentile(95):value:splitBy())",
+    "evaluationType": "AGGREGATE",
+    "filter": "type(SERVICE),tag(\"app:wealth-platform\")",
+    "target": 99.0,
+    "warning": 99.5,
+    "timeframe": "-1d",
+    "enabled": true
+  },
+  {
+    "name": "DT Platform — Infrastructure Availability",
+    "description": "Host uptime for the DT demo host. Tracked separately from service availability to distinguish platform-level from application-level issues.",
+    "metricExpression": "(100)*(builtin:host.availability:splitBy())/(builtin:host.availability:splitBy())",
+    "evaluationType": "AGGREGATE",
+    "filter": "type(HOST),tag(\"project:dt-observability-demo\")",
+    "target": 99.9,
+    "warning": 99.95,
+    "timeframe": "-7d",
+    "enabled": true
+  }
+]

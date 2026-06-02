@@ -1,0 +1,138 @@
+# EasyTravel Docker Compose -- DT Wealth Platform Demo
+# Based on the official Dynatrace EasyTravel Docker Compose:
+# https://github.com/Dynatrace/easyTravel-Docker/blob/master/docker-compose.yml
+#
+# DT service narrative overlay (via container labels):
+#   mongodb              -> DT Platform Database
+#   backend              -> DT Platform API / Trade Engine
+#   frontend             -> DT Adviser Portal (Classic)
+#   angular-frontend     -> DT Adviser Portal (Modern)
+#   www (nginx)          -> DT API Gateway (port 80 portal, 8079 admin UI, 8080 angular)
+# Load generation handled externally by k6 (make baseline / spike / soak)
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-file: "5"
+    max-size: "10m"
+
+x-service: &default-service
+  restart: always
+  logging: *default-logging
+
+services:
+
+  mongodb:
+    <<: *default-service
+    hostname: easytravel-mongodb
+    container_name: mongodb
+    image: "dynatrace/easytravel-mongodb"
+    ports:
+      - 27017
+      - 28017
+    networks:
+      - easytravel
+    labels:
+      com.dt.service: "platform-database"
+      com.dt.team: "platform-engineering"
+      com.dt.tier: "data"
+
+  backend:
+    <<: *default-service
+    hostname: easytravel-backend
+    container_name: backend
+    image: "dynatrace/easytravel-backend"
+    ports:
+      - "8091:8080"     # external 8091 -> internal 8080
+    links:
+      - mongodb
+    environment:
+      # OneAgent auto-instruments the JVM -- no APM server config needed
+      CATALINA_OPTS: "-Xmx300m"
+      ET_DATABASE_LOCATION: "easytravel-mongodb:27017"
+      ET_MONGO_AUTH_DB: "admin"
+      ET_DATABASE_USER: "etAdmin"
+      ET_DATABASE_PASSWORD: "adminadmin"
+    networks:
+      - easytravel
+    labels:
+      com.dt.service: "platform-api"
+      com.dt.component: "trade-engine"
+      com.dt.team: "platform-engineering"
+      com.dt.tier: "backend"
+
+  frontend:
+    <<: *default-service
+    hostname: easytravel-frontend
+    container_name: frontend
+    image: "dynatrace/easytravel-frontend"
+    ports:
+      - 8080
+    links:
+      - backend
+      - mongodb
+    environment:
+      CATALINA_OPTS: "-Xmx525m"
+      ET_BACKEND_URL: "http://easytravel-backend:8080"
+    networks:
+      - easytravel
+    labels:
+      com.dt.service: "adviser-portal-classic"
+      com.dt.component: "jsp-frontend"
+      com.dt.team: "adviser-experience"
+      com.dt.tier: "frontend"
+
+  angular-frontend:
+    <<: *default-service
+    hostname: easytravel-angular-frontend
+    container_name: angular-frontend
+    image: "dynatrace/easytravel-angular-frontend"
+    ports:
+      - 8080
+    links:
+      - backend
+      - mongodb
+    environment:
+      CATALINA_OPTS: "-Xmx525m"
+      ET_BACKEND_URL: "http://easytravel-backend:8080"
+    networks:
+      - easytravel
+    labels:
+      com.dt.service: "adviser-portal-angular"
+      com.dt.component: "angular-frontend"
+      com.dt.team: "adviser-experience"
+      com.dt.tier: "frontend"
+
+  www:
+    <<: *default-service
+    hostname: easytravel-www
+    container_name: www
+    image: "dynatrace/easytravel-nginx"
+    ports:
+      - "80:80"         # Classic adviser portal
+      - "8079:8079"     # Problem patterns admin UI -- toggle faults for demo
+      - "8080:8080"     # Angular adviser portal
+    links:
+      - frontend
+      - angular-frontend
+      - backend
+    environment:
+      ET_FRONTEND_LOCATION: "easytravel-frontend:8080"
+      ET_ANGULAR_FRONTEND_LOCATION: "easytravel-angular-frontend:8080"
+      ET_BACKEND_LOCATION: "easytravel-backend:8080"
+    networks:
+      - easytravel
+    labels:
+      com.dt.service: "api-gateway"
+      com.dt.component: "nginx-proxy"
+      com.dt.team: "platform-engineering"
+      com.dt.tier: "gateway"
+
+  # NOTE: loadgen removed -- k6 (make baseline / make spike / make soak) is used
+  # for all load generation. This gives full control over request patterns, VU
+  # counts, and SLO-aligned thresholds without a restart-looping container.
+
+networks:
+  easytravel:
+    driver: bridge
+    name: easytravel

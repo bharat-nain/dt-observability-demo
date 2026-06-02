@@ -1,0 +1,133 @@
+{
+  "name": "DT Wealth Platform — Business Overview",
+  "version": 21,
+  "variables": [],
+  "tiles": {
+    "0": {
+      "type": "markdown",
+      "content": "## DT Wealth Platform — Business Overview\nReal-time health and throughput of the DT platform. Powered by **Dynatrace Davis AI** — anomalies detected automatically without manual threshold configuration."
+    },
+    "1": {
+      "type": "markdown",
+      "content": "### Service Level Objectives\n| SLO | Target | Window |\n|-----|--------|--------|\n| API Availability | **99.5%** | 7 days |\n| Latency p95 < 2s | **99.0%** | 1 day |\n| Infra Availability | **99.9%** | 7 days |\n\n➡ [View SLO status](/ui/slo)"
+    },
+    "2": {
+      "type": "markdown",
+      "content": "### Load Test Commands\n```\n# Normal trading day (20 VUs, 5 min)\nmake baseline APP_HOST=<ip>\n\n# Spike — triggers Davis AI problem\nmake spike APP_HOST=<ip>\n\n# Endurance — exposes memory leaks\nmake soak-short APP_HOST=<ip>\n```\nWatch the Problems page for automatic anomaly detection."
+    },
+    "3": {
+      "title": "Transaction Throughput — Requests / min",
+      "type": "data",
+      "query": "timeseries count = sum(dt.service.request.count), by:{dt.entity.service}",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "hidden": false }
+        },
+        "thresholds": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": { "isAvailable": true }
+      }
+    },
+    "4": {
+      "title": "Error Rate — Failed Transactions %",
+      "type": "data",
+      "query": "timeseries {total = sum(dt.service.request.count), failed = sum(dt.service.request.failure_count)}, by:{dt.entity.service} | fieldsAdd failure_rate = arrayMap(failed, (v, i) -> if(total[i] > 0, (v / total[i]) * 100.0, else: 0.0))",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "hidden": false }
+        },
+        "thresholds": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": { "isAvailable": true }
+      }
+    },
+    "5": {
+      "title": "Response Time — p50 / p95 (ms)",
+      "type": "data",
+      "query": "timeseries {p50 = percentile(dt.service.response_time, 50), p95 = percentile(dt.service.response_time, 95)}",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "hidden": false }
+        },
+        "thresholds": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": { "isAvailable": true }
+      }
+    },
+    "6": {
+      "type": "markdown",
+      "content": "### Davis AI Problems\n\nDavis AI detects anomalies automatically — no alert rules needed.\n\n**Demo moment:** Run `make spike APP_HOST=<ip>` to generate a traffic spike, then watch Davis AI correlate the root cause across service → process → host within ~2 minutes.\n\n➡ [View Problems](/ui/problems)"
+    },
+    "7": {
+      "title": "Host CPU Usage %",
+      "type": "data",
+      "query": "timeseries cpu_usage = avg(dt.host.cpu.usage), by:{dt.entity.host}",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "hidden": false }
+        },
+        "thresholds": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": { "isAvailable": true }
+      }
+    }
+  },
+  "layouts": {
+    "0": { "x": 0,  "y": 0,  "w": 24, "h": 3 },
+    "1": { "x": 0,  "y": 3,  "w": 8,  "h": 5 },
+    "2": { "x": 8,  "y": 3,  "w": 16, "h": 5 },
+    "3": { "x": 0,  "y": 8,  "w": 8,  "h": 6 },
+    "4": { "x": 8,  "y": 8,  "w": 8,  "h": 6 },
+    "5": { "x": 16, "y": 8,  "w": 8,  "h": 6 },
+    "6": { "x": 0,  "y": 14, "w": 12, "h": 6 },
+    "7": { "x": 12, "y": 14, "w": 12, "h": 6 }
+  },
+  "importedWithCode": false,
+  "settings": {
+    "defaultTimeframe": {
+      "value": { "from": "now()-2h", "to": "now()" },
+      "enabled": true
+    }
+  },
+  "annotations": []
+}

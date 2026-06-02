@@ -1,0 +1,34 @@
+{
+  "name": "dt-demo",
+  "description": "Management zone scoping all DT demo resources — hosts, services, and processes tagged with app:wealth-platform. Used to scope dashboards and SLOs.",
+  "rules": [
+    {
+      "type": "ME",
+      "enabled": true,
+      "propagationTypes": [
+        "SERVICE_TO_HOST_LIKE",
+        "SERVICE_TO_PROCESS_GROUP_LIKE",
+        "PROCESS_GROUP_TO_HOST",
+        "HOST_TO_PROCESS_GROUP_INSTANCE"
+      ],
+      "conditions": [
+        {
+          "key": {
+            "attribute": "HOST_TAGS",
+            "type": "STATIC"
+          },
+          "comparisonInfo": {
+            "type": "TAG",
+            "operator": "TAG_KEY_EQUALS",
+            "value": {
+              "context": "CONTEXTLESS",
+              "key": "project",
+              "value": "dt-observability-demo"
+            },
+            "negate": false
+          }
+        }
+      ]
+    }
+  ]
+}

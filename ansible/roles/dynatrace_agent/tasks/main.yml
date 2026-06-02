@@ -1,0 +1,65 @@
+---
+# ── Dynatrace OneAgent role ───────────────────────────────────────────────────
+# Downloads and installs the Dynatrace OneAgent with host group + tags so that
+# all auto-discovered services are visible in the 'dt-demo' management zone.
+
+- name: Check if OneAgent is already installed
+  # Newer OneAgent versions install to /opt/dynatrace/oneagent/
+  # Check for the oneagentctl binary which is present in all versions
+  ansible.builtin.stat:
+    path: /opt/dynatrace/oneagent/agent/tools/oneagentctl
+  register: oneagent_installed
+
+- name: Download OneAgent installer from Dynatrace tenant
+  # dt_paas_token is the installer/PaaS token (from Deploy Dynatrace wizard)
+  # dt_api_token is the separate Config API token (dashboards, SLOs, alerts)
+  ansible.builtin.get_url:
+    url: "{{ dt_environment_url }}/api/v1/deployment/installer/agent/unix/default/latest?arch=x86&flavor=default"
+    dest: /tmp/dynatrace-oneagent.sh
+    mode: "0755"
+    timeout: 120
+    headers:
+      Authorization: "Api-Token {{ dt_paas_token }}"
+  when: not oneagent_installed.stat.exists
+
+- name: Install OneAgent with host metadata
+  ansible.builtin.command: >
+    /tmp/dynatrace-oneagent.sh
+    --set-infra-only=false
+    --set-app-log-content-access=true
+    --set-host-group={{ dt_host_group }}
+    --set-host-name=dt-demo
+    {% for tag in dt_host_tags %}
+    --set-host-tag={{ tag }}
+    {% endfor %}
+  when: not oneagent_installed.stat.exists
+  changed_when: true
+  register: oneagent_install_result
+
+- name: Remove installer script
+  ansible.builtin.file:
+    path: /tmp/dynatrace-oneagent.sh
+    state: absent
+
+- name: Find the actual OneAgent service name
+  # Newer versions register as 'oneagent', older as 'dynatrace-oneagent'
+  ansible.builtin.shell: |
+    systemctl list-units --type=service --all | grep -oE '(oneagent|dynatrace-oneagent)\.service' | head -1 | sed 's/\.service//'
+  changed_when: false
+  register: dt_service_name
+
+- name: Ensure Dynatrace OneAgent service is running
+  ansible.builtin.systemd:
+    name: "{{ dt_service_name.stdout | default('oneagent') }}"
+    state: started
+    enabled: true
+
+- name: Verify OneAgent is connected using oneagentctl
+  ansible.builtin.command: /opt/dynatrace/oneagent/agent/tools/oneagentctl --get-server
+  changed_when: false
+  register: dt_server
+  ignore_errors: true
+
+- name: Show OneAgent connected server
+  ansible.builtin.debug:
+    msg: "Dynatrace OneAgent connected to: {{ dt_server.stdout | default('check Dynatrace UI') }}"

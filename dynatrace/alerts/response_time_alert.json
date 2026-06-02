@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "configurationVersions": [6],
+    "clusterVersion": "1.0.0"
+  },
+  "id": null,
+  "name": "DT Platform — Response Time Degradation",
+  "description": "Fires when p95 response time exceeds 3 seconds for more than 5 minutes. Adviser portal interactions become noticeably slow at this threshold.",
+  "metricSelector": "builtin:service.response.time:percentile(95):splitBy(\"dt.entity.service\"):auto:sort(value(avg,descending)):limit(10)",
+  "monitoringStrategy": {
+    "type": "STATIC_THRESHOLDS",
+    "alertCondition": "ABOVE",
+    "threshold": 3000000,
+    "unit": "MICROSECOND",
+    "dealertingSamples": 5,
+    "samples": 5,
+    "violatingSamples": 5
+  },
+  "primaryDimensionKey": "dt.entity.service",
+  "scopes": [
+    {
+      "filterType": "TAG",
+      "tagFilter": {
+        "context": "CONTEXTLESS",
+        "key": "app",
+        "value": "wealth-platform"
+      }
+    }
+  ],
+  "enabled": true,
+  "severity": "SLOWDOWN",
+  "eventType": "CUSTOM_ALERT"
+}

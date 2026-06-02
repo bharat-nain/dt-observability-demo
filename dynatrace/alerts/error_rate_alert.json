@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "configurationVersions": [6],
+    "clusterVersion": "1.0.0"
+  },
+  "id": null,
+  "name": "DT Platform — High Error Rate",
+  "description": "Fires when any platform service exceeds 5% error rate for more than 3 minutes. Indicates transaction failures impacting advisers or clients.",
+  "metricSelector": "builtin:service.errors.total.rate:splitBy(\"dt.entity.service\"):avg:auto:sort(value(avg,descending)):limit(10)",
+  "monitoringStrategy": {
+    "type": "STATIC_THRESHOLDS",
+    "alertCondition": "ABOVE",
+    "threshold": 5.0,
+    "unit": "PERCENT",
+    "dealertingSamples": 5,
+    "samples": 3,
+    "violatingSamples": 3
+  },
+  "primaryDimensionKey": "dt.entity.service",
+  "scopes": [
+    {
+      "filterType": "TAG",
+      "tagFilter": {
+        "context": "CONTEXTLESS",
+        "key": "app",
+        "value": "wealth-platform"
+      }
+    }
+  ],
+  "enabled": true,
+  "severity": "PERFORMANCE",
+  "eventType": "CUSTOM_ALERT"
+}

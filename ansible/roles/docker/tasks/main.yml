@@ -1,0 +1,77 @@
+---
+# ── Docker role — Docker CE + Compose v2 plugin ───────────────────────────────
+
+- name: Remove old conflicting Docker packages (if any)
+  ansible.builtin.apt:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+  ignore_errors: true
+
+- name: Add Docker GPG signing key
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    keyring: /etc/apt/keyrings/docker.gpg
+    state: present
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg]
+      https://download.docker.com/linux/ubuntu
+      {{ ansible_distribution_release }} stable
+    state: present
+    filename: docker
+
+- name: Install Docker CE and Compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Enable and start Docker service
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add ubuntu user to docker group (avoid sudo for docker commands)
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ docker_users }}"
+
+- name: Configure Docker daemon — log rotation and metrics endpoint
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "50m",
+          "max-file": "3"
+        },
+        "metrics-addr": "0.0.0.0:9323",
+        "experimental": true
+      }
+    mode: "0644"
+  notify: Restart Docker
+
+- name: Verify Docker is functional
+  ansible.builtin.command: docker version
+  changed_when: false
+  register: docker_version
+
+- name: Print Docker version
+  ansible.builtin.debug:
+    msg: "{{ docker_version.stdout_lines[0] }}"

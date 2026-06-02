@@ -1,0 +1,31 @@
+---
+# Dynamic inventory — automatically discovers EC2 instances tagged Project=dt-observability-demo
+# Requires: pip install boto3 botocore + ansible-galaxy collection install amazon.aws
+plugin: amazon.aws.aws_ec2
+
+regions:
+  - ap-southeast-2
+
+# Use the AWS profile configured in terraform
+profile: dt
+
+# Only discover running instances belonging to this project
+filters:
+  tag:Project: dt-observability-demo
+  instance-state-name: running
+
+# Prefer the public IP as the connection address
+hostnames:
+  - ip-address
+
+# Group instances by their Role tag
+keyed_groups:
+  - key: tags.Role
+    prefix: role
+    separator: "_"
+
+# Compose connection variables from instance metadata
+compose:
+  ansible_host: public_ip_address
+  ansible_user: "'ubuntu'"
+  ansible_ssh_private_key_file: "'../.ssh/dt-demo.pem'"
